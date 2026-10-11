@@ -10,6 +10,7 @@ on:
       - "site/**"
       - "README.md"
       - "ENGINEERING_HANDOFF.md"
+      - "DEMO_GUIDE.md"
       - "AGENTS.md"
       - "CODEX_MASTER_PROMPT.md"
       - ".codex/**"
