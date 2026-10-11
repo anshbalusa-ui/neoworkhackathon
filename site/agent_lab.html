@@ -33,7 +33,7 @@
 <div class="metricrow"><div class="metric"><b id="blocked">—</b><span>Malicious grants</span></div><div class="metric"><b id="safe">—</b><span>Allowed steps</span></div><div class="metric"><b id="egress">0</b><span>Real unsafe requests</span></div></div>
 </div>
 <div class="panel browser"><div class="btop"><div class="dots"><i></i><i></i><i></i></div><div class="address">mock://shop.example/catalog · rendered local HTML fixture</div></div>
-<div class="screen"><iframe id="shop" title="Synthetic local keyboard shop with an attacker-controlled review" src="./mock_shop.html" sandbox="allow-scripts allow-same-origin"></iframe></div>
+<div class="screen"><iframe id="shop" title="Synthetic local keyboard shop with an attacker-controlled review" src="./mock_shop.html" sandbox="allow-scripts"></iframe></div>
 <div class="below"><span class="screenstate" id="browser-status"><strong>Ready</strong> · Awaiting agent</span><span class="mini">Local DOM replay · no live Grok</span></div></div>
 <div class="panel traces"><h2>02 · Inspect the trust boundary</h2>
 <div class="status" id="status" role="status" aria-live="polite">Choose either mode to evaluate the same compromised-planner proposal.</div>
@@ -52,7 +52,7 @@ const iframe=$('shop');
 iframe.addEventListener('load',()=>{iframeReady=true;});
 function send(action,text=''){
   if(!iframeReady || !iframe.contentWindow)return;
-  iframe.contentWindow.postMessage({channel:'neo-mock-fixture',action,text},location.origin);
+  iframe.contentWindow.postMessage({channel:'neo-mock-fixture',action,text},'*');
 }
 function addLog(evt){
   const node=document.createElement('div');
