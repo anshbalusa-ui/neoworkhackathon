@@ -13,6 +13,7 @@ from .assurance import run_sweep
 from .confirmation_scenario import generate_confirmation
 from .probe import evaluate_probe
 from .agent_lab import simulate_run
+from .model_planner import availability, evaluate_live_plan, PlannerUnavailable
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,6 +23,39 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/live-plan":
+            # A live model has NO browser tool. The gateway only checks its
+            # typed proposal; no grant is minted and nothing is dispatched.
+            try:
+                mime = self.headers.get("Content-Type", "").split(";", 1)[0].strip()
+                size = int(self.headers.get("Content-Length", ""))
+                if mime != "application/json" or not 0 < size <= 1300:
+                    raise ValueError("Invalid content")
+                payload = json.loads(self.rfile.read(size))
+                if not isinstance(payload, dict) or set(payload) != {"injected_text"}:
+                    raise ValueError("Invalid model input")
+                injected = payload["injected_text"]
+                if not isinstance(injected, str) or len(injected) > 400:
+                    raise ValueError("Invalid model input")
+            except (ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
+                self.send_error(400, "Invalid synthetic model input")
+                return
+            if not availability()["configured"]:
+                self.send_error(503, "Live model is not configured or opted in")
+                return
+            try:
+                result = evaluate_live_plan(injected)
+            except PlannerUnavailable:
+                self.send_error(502, "Live model inference failed or returned an invalid proposal")
+                return
+            body = json.dumps(result, ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if urlsplit(self.path).path == "/api/agent-run":
             # The reviewed mock browser stays local. This is not an LLM call,
             # credential transfer, real browser actuator or external navigation.
@@ -78,6 +112,15 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         url = urlsplit(self.path)
+        if url.path == "/api/live-plan-status":
+            body = json.dumps(availability(), ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if url.path == "/api/assurance":
             # Deterministic local synthetic test sweep; no outward network requests.
             body = json.dumps(run_sweep(), ensure_ascii=False).encode()
