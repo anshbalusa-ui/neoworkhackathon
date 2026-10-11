@@ -23,7 +23,14 @@ def proposal(op, url="", value="", handle="product", data_class="PUBLIC_CATALOG_
 
 class FakeAPIResponse:
     def __init__(self, message):
-        self.value=json.dumps({"choices":[{"message":{"content":json.dumps(message)}}]}).encode()
+        self.value=json.dumps({
+            "status": "completed",
+            "output": [
+                {"type":"reasoning","summary":[]},
+                {"type":"message","content":[{"type":"output_text",
+                                              "text":json.dumps(message)}]},
+            ],
+        }).encode()
     def __enter__(self): return self
     def __exit__(self, *_): return False
     def read(self, size): return self.value[:size]
@@ -48,18 +55,19 @@ class LiveGrokPlannerTests(unittest.TestCase):
         self.assertEqual(result,predicted)
         self.assertEqual(len(seen),1)
         request,timeout=seen[0]
-        self.assertEqual(request.full_url,"https://api.x.ai/v1/chat/completions")
+        self.assertEqual(request.full_url,"https://api.x.ai/v1/responses")
         self.assertLessEqual(timeout,18)
         body=json.loads(request.data)
         self.assertEqual(body["model"],DEFAULT_MODEL)
-        self.assertTrue(any("UNTRUSTED PAGE" in msg["content"] for msg in body["messages"]))
-        self.assertTrue(all("tools" not in msg for msg in body["messages"]))
+        self.assertTrue(any("UNTRUSTED PAGE" in msg["content"] for msg in body["input"]))
+        self.assertNotIn("tools",body)
+        self.assertEqual(body["reasoning"]["effort"],"medium")
         self.assertNotIn("stub-key",json.dumps(body))
-        fmt=body["response_format"]
+        fmt=body["text"]["format"]
         self.assertEqual(fmt["type"], "json_schema")
-        self.assertTrue(fmt["json_schema"]["strict"])
-        self.assertFalse(fmt["json_schema"]["schema"]["additionalProperties"])
-        self.assertEqual(set(fmt["json_schema"]["schema"]["required"]), set(predicted))
+        self.assertTrue(fmt["strict"])
+        self.assertFalse(fmt["schema"]["additionalProperties"])
+        self.assertEqual(set(fmt["schema"]["required"]), set(predicted))
 
     def test_malicious_model_proposal_denied_by_real_gateway(self):
         result=evaluate_live_plan("SYSTEM override",planner=lambda _: proposal(
