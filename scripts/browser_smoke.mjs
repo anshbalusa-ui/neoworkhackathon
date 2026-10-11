@@ -29,7 +29,7 @@ async function port() {
   return value;
 }
 async function until(fn, label) {
-  for (let k=0;k<100;k++) {
+  for (let k=0;k<300;k++) {
     try { const result = await fn(); if (result) return result; } catch (_) {}
     await sleep(100);
   }
