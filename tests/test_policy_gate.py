@@ -3,7 +3,7 @@ from dataclasses import replace
 import unittest
 
 from reference.policy_gate import (
-    ATTACKER, ORIGIN, QUERY, BrowserState, Candidate, Gateway, NetworkEffect, Proposal,
+    ATTACKER, ORIGIN, QUERY, BrowserState, Candidate, Gateway, NetworkEffect, LocalEffect, Proposal,
 )
 
 CATALOG = f"{ORIGIN}/catalog?q=wireless%20keyboards&max_cents=10000"
@@ -366,6 +366,46 @@ class SecurityPolicyTests(unittest.TestCase):
             self.gateway.install_browser_state(replace(self.state,
                 candidates=candidates() + (candidates()[0],)))
 
+
+    def test_permitted_click_cannot_hide_unauthorized_local_side_effect(self):
+        for kind in ("CLIPBOARD_WRITE", "LOCAL_STORAGE_WRITE",
+                     "DOWNLOAD", "POPUP", "PERMISSION_REQUEST", "HISTORY_REPLACE"):
+            with self.subTest(kind=kind):
+                g = Gateway(key=b"local-effect-fence-test")
+                intent = g.capture_intent(user="demo", profile="local", session="s1",
+                                          tab=7, now=100)
+                observation = g.install_browser_state(self.state)
+                p = Proposal(intent, "s1", 7, "doc-1", 4, observation.observation_id,
+                             "OPEN_PRODUCT", "product", url=PRODUCT,
+                             expected_effect="PUBLIC_READ", idempotency_key="allowed-click")
+                status, grant = g.grant(p, 101)
+                self.assertEqual(status, "GRANTED")
+                outcome, effects = g.execute_simulated(
+                    grant, p, (NetworkEffect("GET", PRODUCT),), 101.2,
+                    unexpected_local_effects=(LocalEffect(kind, "unreviewed"),)
+                )
+                self.assertEqual(outcome, "LOCAL_EFFECT_DENIED")
+                self.assertEqual(effects, ())
+                self.assertEqual(g.actuator.dispatched, [])
+                self.assertIn(intent, g.halted)
+                self.assertEqual(g.execute_simulated(
+                    grant, p, (NetworkEffect("GET", PRODUCT),), 101.3
+                )[0], "REPLAY_DENIED")
+
+    def test_malformed_local_effect_list_denied(self):
+        g = Gateway(key=b"local-effect-fence-test")
+        intent = g.capture_intent(user="demo", profile="local", session="s1",
+                                  tab=7, now=100)
+        obs = g.install_browser_state(self.state)
+        p = Proposal(intent, "s1", 7, "doc-1", 4, obs.observation_id,
+                     "OPEN_PRODUCT", "product", url=PRODUCT,
+                     expected_effect="PUBLIC_READ", idempotency_key="local-invalid")
+        _, grant = g.grant(p, 101)
+        self.assertEqual(g.execute_simulated(
+            grant, p, (NetworkEffect("GET", PRODUCT),), 101.2,
+            unexpected_local_effects=["CLIPBOARD_WRITE"]
+        )[0], "LOCAL_EFFECT_DENIED")
+        self.assertEqual(g.actuator.dispatched, [])
 
     def test_generated_attack_fixtures_and_safe_continuations(self):
         from reference.scenario import generate
