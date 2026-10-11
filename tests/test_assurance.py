@@ -13,6 +13,12 @@ class AssuranceTests(unittest.TestCase):
         self.assertEqual(report["blocked"], report["attempted"])
         self.assertEqual(report["safe_recoveries"], report["attempted"])
         self.assertEqual(report["unexpected_authorizations"], 0)
+        self.assertEqual(report["effect_attempted"], 72)
+        self.assertEqual(report["effect_blocked"], 72)
+        self.assertEqual(len(report["effect_families"]), 3)
+        for effect in report["effect_families"].values():
+            self.assertEqual(effect["blocked"], effect["attempted"])
+            self.assertEqual(effect["violations"], [])
         for family in report["families"]:
             with self.subTest(family=family["id"]):
                 self.assertFalse(family["violations"])
