@@ -10,7 +10,7 @@ After authorization and **only** for a supported reviewed adapter, classify the 
 
 - **AUTO:** low-risk, nonpersistent, authorized read/local effect on an anonymous public site, with complete pre-effect browser/network mediation. A normal label or GET method alone is insufficient.
 - **CONFIRM:** an in-scope, supported, reviewed externally visible or persistent action for which exact-scope native user confirmation is required. **The v1 shopping adapter enables no state-changing confirmation actions.**
-- **DENY / NEW INTENT:** outside the task; unknown or unsupported adapter; sensitive data/recipient not authorized; high-impact actions lacking dedicated controls; or any inability to pre-mediate effects. Confirmation cannot turn an injected action into an authorized one.
+- **DENY / NEW INTENT:** outside the task; unknown or unsupported adapter; sensitive data/recipient not authorized; high-impact actions lacking dedicated controls; or any inability to pre-mediate effects. **Confirmation is not authorization:** it cannot turn an injected action into an authorized one or widen the original intent.
 
 ## Reviewer-checkable decision table
 
