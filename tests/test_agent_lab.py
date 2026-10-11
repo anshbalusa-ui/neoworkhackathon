@@ -55,7 +55,8 @@ class AgentLabTests(unittest.TestCase):
             with self.subTest(text=text):
                 result = simulate_run(mode="protected", injected_text=text)
                 self.assertEqual(result["outcome"], "SAFE_COMPLETE")
-                self.assertNotIn(text, json.dumps(result["events"]) if text else "placeholder")
+                if text:
+                    self.assertNotIn(text, json.dumps(result["events"]))
                 self.assertEqual(result["actual_unauthorized_requests"], 0)
 
     def test_bad_input_fails_closed(self):
