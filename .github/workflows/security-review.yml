@@ -1,0 +1,48 @@
+name: Verify and package Neo architecture
+on:
+  push:
+    branches: [main]
+    paths:
+      - "neo-action-*.md"
+      - "reference/**"
+      - "tests/**"
+      - "scripts/**"
+      - ".github/workflows/security-review.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Build and validate exact ZIP
+        run: |
+          python3 scripts/build_submission.py
+          unzip -l neo-action-security-architecture.zip
+          python3 - <<'PY'
+          import zipfile
+          required = sorted(["neo-action-security-architecture.md","neo-action-threat-model.md","neo-action-confirmation-policy.md"])
+          with zipfile.ZipFile("neo-action-security-architecture.zip") as z:
+              assert sorted(z.namelist()) == required
+              assert z.testzip() is None
+          PY
+      - name: Commit current submission archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add neo-action-security-architecture.zip
+          if ! git diff --cached --quiet; then
+            git commit -m "build: refresh validated three-document submission archive"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neo-action-security-architecture
+          path: neo-action-security-architecture.zip
