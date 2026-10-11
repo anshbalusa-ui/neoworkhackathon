@@ -42,7 +42,9 @@
 // Parent interactions have to originate from this same local demo origin.
 const params = new URLSearchParams(location.search);
 document.querySelector('#product').addEventListener('click', () => {
-  document.querySelector('#details').style.display='block';
+  const details=document.querySelector('#details');
+  details.style.display='block';
+  details.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
 document.querySelector('#filter').addEventListener('click', () => {
   const cap = Math.max(0,Number(document.querySelector('#price').value)||9999)*100;
