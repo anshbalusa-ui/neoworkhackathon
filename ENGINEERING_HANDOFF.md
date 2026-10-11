@@ -24,6 +24,20 @@ The `reference/policy_gate.py` simulator has a **trusted-only test harness** for
 - **Actuator/network → verifier:** instrumented effect ledger plus resulting trusted browser state; no surprise redirect, form recipient, value, POST, external request, or follow-up action after divergence. A permitted click is not a blanket permission for its handler traffic.
 - **Confirmation:** v1 shopping flow does not implement checkout, account changes or communications. A separate reviewed future adapter may support an explicitly requested account change only after exact native approval; payments and credentials require dedicated design and step-up controls.
 
+## Product extension: data, applications, and actions
+
+Gen's broader agentic-security question extends beyond browser clicks: the assistant may **read consumer data, operate applications, and act externally**. The proposal deliberately implements only an anonymous catalog in v1, but the boundary generalizes through three **separately authorized dimensions**:
+
+| Dimension | Production control | Do not infer from webpage text |
+|---|---|---|
+| **Data access** | Trusted per-source read capabilities, scoped fields and retention rules; least-privilege observation and declassification rules; exclude credentials by default. | Permission to view a page does not imply permission to read passwords, other tabs, stored identity data, or private app content. |
+| **Application access** | Reviewed adapters with a manifest of methods, authenticated principal, possible side effects, destinations, data classifications and reversibility. Bind tools to origin/app identity and version. | An instruction inside a chat, CRM record, email, or webpage cannot silently authorize a new tool or another app. |
+| **External action** | Typed proposal, independently checked intent/capability, exact recipient and effect profile, one-use grant, native approval where required, pre-effect enforcement and auditable outcome. | Permission to search does not imply permission to send, purchase, publish, delete, or cross domains. |
+
+Each adapter's release gate is a **policy-enforceability proof**: every relevant side effect must be identified and intercepted before it occurs; the agent must have no bypass tool; model-generated summaries retain source taint; and execution receipts must be privacy-preserving. Consent previews and receipts should express what data left which source, to which destination, under whose authority, without writing private values to audit. A production rollout begins with observe-only modes and expands only after instrumented tests, user comprehension review, independent adversarial testing and rollback verification.
+
+**Differentiating assurance artifact.** The `reference/assurance.py` counterfactual harness assumes a compromised planner and independently feeds 264 synthetic malformed/out-of-task actions and 72 modified network effects into the trusted reference boundary (seed 3470, 24 rounds). The unit tests assert both denial and valid task recovery, not just model refusal. This is repeatable local policy evidence, not a real-browser interception or an overall security score. Future browser-level assurance must reuse the same attack corpus against actual privileged event/network mediation.
+
 ## Unresolved risks and launch posture
 
 1. First-party product data can be false. A checked price is still an untrusted page claim; the gateway limits actions, not answer truth. Cross-source verification belongs in a separate answer-integrity program.
