@@ -1,4 +1,4 @@
-name: Verify and package Neo architecture
+name: Verify Neo action security submission
 on:
   push:
     branches: [main]
@@ -7,41 +7,43 @@ on:
       - "reference/**"
       - "tests/**"
       - "scripts/**"
+      - "site/**"
+      - "README.md"
+      - "ENGINEERING_HANDOFF.md"
+      - "AGENTS.md"
+      - "CODEX_MASTER_PROMPT.md"
+      - ".codex/**"
+      - "neo-action-security-architecture.zip"
       - ".github/workflows/security-review.yml"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
       - name: Unit tests
         run: python3 -m unittest discover -s tests -v
-      - name: Build and validate exact ZIP
+      - name: Verify simulator-backed site evidence
+        run: python3 -m reference.scenario --check-site
+      - name: Validate committed archive, then rebuild
         run: |
-          python3 scripts/build_submission.py
-          unzip -l neo-action-security-architecture.zip
           python3 - <<'PY'
-          import zipfile
-          required = sorted(["neo-action-security-architecture.md","neo-action-threat-model.md","neo-action-confirmation-policy.md"])
-          with zipfile.ZipFile("neo-action-security-architecture.zip") as z:
-              assert sorted(z.namelist()) == required
-              assert z.testzip() is None
+          from pathlib import Path
+          from zipfile import ZipFile
+          names = ("neo-action-security-architecture.md", "neo-action-threat-model.md", "neo-action-confirmation-policy.md")
+          with ZipFile("neo-action-security-architecture.zip") as archive:
+              assert sorted(archive.namelist()) == sorted(names)
+              assert archive.testzip() is None
+              for name in names:
+                  assert archive.read(name) == Path(name).read_bytes(), name
+          print("PASS: committed ZIP matches all three Markdown sources")
           PY
-      - name: Commit current submission archive
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add neo-action-security-architecture.zip
-          if ! git diff --cached --quiet; then
-            git commit -m "build: refresh validated three-document submission archive"
-            git push
-          fi
+          python3 scripts/build_submission.py
+          unzip -t neo-action-security-architecture.zip
       - uses: actions/upload-artifact@v4
         with:
           name: neo-action-security-architecture

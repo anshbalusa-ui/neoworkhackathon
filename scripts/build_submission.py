@@ -1,6 +1,6 @@
 """Reproducibly package the three required deliverables at the archive root."""
 from pathlib import Path
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("neo-action-security-architecture.md", "neo-action-threat-model.md", "neo-action-confirmation-policy.md")
@@ -12,7 +12,10 @@ if __name__ == "__main__":
             raise SystemExit("Missing or empty: " + name)
     with ZipFile(OUTPUT, "w", compression=ZIP_DEFLATED, compresslevel=9) as z:
         for name in FILES:
-            z.write(ROOT / name, arcname=name)
+            info = ZipInfo(name, date_time=(2026, 10, 11, 0, 0, 0))
+            info.compress_type = ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, (ROOT / name).read_bytes(), compresslevel=9)
     with ZipFile(OUTPUT) as z:
         if sorted(z.namelist()) != sorted(FILES) or z.testzip():
             raise SystemExit("ZIP verification failed")
