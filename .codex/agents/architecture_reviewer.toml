@@ -1,0 +1,4 @@
+name = "luna_architecture_reviewer"
+description = "Read-only security boundary reviewer: challenge DOM races, content-to-action authority laundering, network escape and accepted first-party risk."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
