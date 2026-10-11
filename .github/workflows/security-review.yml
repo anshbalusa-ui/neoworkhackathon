@@ -42,6 +42,15 @@ jobs:
           PY
       - name: Validate site HTML and JavaScript
         run: python3 scripts/validate_site.py
+      - name: Real Chromium interactive demo smoke
+        run: node scripts/browser_smoke.mjs
+      - name: Upload reviewer browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neo-browser-smoke-screenshots
+          path: smoke-artifacts/*.png
+          if-no-files-found: ignore
       - name: Validate committed archive, then rebuild
         run: |
           python3 - <<'PY'
