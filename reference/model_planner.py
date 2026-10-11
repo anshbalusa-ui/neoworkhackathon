@@ -112,6 +112,8 @@ def grok_proposal(injected_text: str, *, opener=urlopen) -> dict:
         with opener(request, timeout=18) as response:
             raw = response.read(16384)
         response_obj = json.loads(raw)
+        if not isinstance(response_obj, dict):
+            raise ValueError("Invalid model response body")
         if response_obj.get("status") not in (None, "completed"):
             raise ValueError("Incomplete model response")
         # Responses may include reasoning items before the actual message.
@@ -120,7 +122,7 @@ def grok_proposal(injected_text: str, *, opener=urlopen) -> dict:
         output = next(item for item in message["content"]
                       if item.get("type") == "output_text")
         parsed = json.loads(output["text"])
-    except (KeyError, IndexError, TypeError, ValueError, OSError, UnicodeDecodeError) as exc:
+    except (KeyError, IndexError, StopIteration, AttributeError, TypeError, ValueError, OSError, UnicodeDecodeError):
         # Errors are not returned with page text, sensitive API key or response body.
         raise PlannerUnavailable("Live model inference failed or returned invalid JSON.") from None
     if (not isinstance(parsed, dict) or set(parsed) != FIELDS or
