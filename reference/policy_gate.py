@@ -12,7 +12,9 @@ from hashlib import sha256
 from hmac import compare_digest, new as hmac
 import json
 from math import isfinite
+from time import monotonic
 import secrets
+from typing import Callable
 from urllib.parse import parse_qsl, urlsplit
 
 ORIGIN = "https://shop.example"
@@ -122,8 +124,10 @@ class FakeActuator:
 
 
 class Gateway:
-    def __init__(self, *, key: bytes | None = None, reviewed_shortlist: bool = False):
+    def __init__(self, *, key: bytes | None = None, reviewed_shortlist: bool = False,
+                 clock: Callable[[], float] | None = None):
         self._key = key if key is not None else secrets.token_bytes(32)
+        self._clock = clock or monotonic
         self._intents: dict[str, tuple[dict, str]] = {}
         self._steps: dict[str, int] = {}
         self._revoked: set[str] = set()
@@ -139,17 +143,24 @@ class Gateway:
         self.audit: list[AuditEntry] = []
         self.actuator = FakeActuator()
         self.halted: set[str] = set()
+    def _time(self, supplied: float | None) -> float:
+        value = self._clock() if supplied is None else supplied
+        if (not isinstance(value, (int, float)) or isinstance(value, bool) or
+            not isfinite(value)):
+            raise ValueError("invalid trusted clock value")
+        return float(value)
 
     def _mac(self, value: dict) -> str:
         return hmac(self._key, canonical(value), "sha256").hexdigest()
 
     def capture_intent(self, *, user: str, profile: str, session: str, tab: int,
-                       now: float, query: str = QUERY, max_price_cents: int = PRICE_CENTS,
+                       now: float | None = None, query: str = QUERY,
+                       max_price_cents: int = PRICE_CENTS,
                        allow_shortlist: bool = False) -> str:
         """Trusted-chrome entrypoint; NEVER expose to page, model, or extension."""
+        now = self._time(now)
         if (not all(isinstance(item, str) and item for item in (user, profile, session)) or
-            not isinstance(tab, int) or isinstance(tab, bool) or tab < 0 or
-            not isinstance(now, (int, float)) or not isfinite(now)):
+            not isinstance(tab, int) or isinstance(tab, bool) or tab < 0):
             raise ValueError("invalid trusted identity or clock")
         if query != QUERY or max_price_cents != PRICE_CENTS:
             raise ValueError("this reviewed task requires exact query and price ceiling")
@@ -223,16 +234,20 @@ class Gateway:
 
     def _log(self, action: Proposal, rule: str, outcome: str) -> None:
         try:
-            action_hash = digest(asdict(action))
+            action_hash = self._mac({"proposal": asdict(action)})
         except (TypeError, ValueError):
             action_hash = "INVALID_SCHEMA"
-        self.audit.append(AuditEntry(action.intent if isinstance(action.intent, str) else "",
-                                     rule, action.op if isinstance(action.op, str) else "",
-                                     outcome, action_hash))
+        intent_id = action.intent if isinstance(action.intent, str) and action.intent in self._intents else "UNKNOWN"
+        op = action.op if isinstance(action.op, str) and action.op in AUTO_OPS | {"SAVE_SHORTLIST"} else "UNKNOWN"
+        self.audit.append(AuditEntry(intent_id, rule, op, outcome, action_hash))
 
-    def check(self, action: Proposal, now: float, *, approval: str | None = None,
+    def check(self, action: Proposal, now: float | None = None, *, approval: str | None = None,
               _approved_at_grant: bool = False) -> str:
         if not isinstance(action, Proposal):
+            return "SCHEMA_DENIED"
+        try:
+            now = self._time(now)
+        except ValueError:
             return "SCHEMA_DENIED"
         required_strings = (action.intent, action.session, action.document,
                             action.observation_id, action.op, action.handle,
@@ -244,8 +259,7 @@ class Gateway:
                      action.observation_id, action.op, action.handle, action.idempotency_key)) or
             any(len(item) > 512 for item in required_strings) or
             not isinstance(action.tab, int) or isinstance(action.tab, bool) or
-            not isinstance(action.revision, int) or isinstance(action.revision, bool) or
-            not isinstance(now, (int, float)) or not isfinite(now)):
+            not isinstance(action.revision, int) or isinstance(action.revision, bool)):
             return "SCHEMA_DENIED"
         if not self.audit_ok:
             return "AUDIT_DOWN"
@@ -326,8 +340,12 @@ class Gateway:
                     return "REQUIRE_CONFIRMATION"
         return "OK"
 
-    def approve_trusted(self, action: Proposal, now: float) -> str | None:
+    def approve_trusted(self, action: Proposal, now: float | None = None) -> str | None:
         """Synthetic fresh native user gesture; only future reviewed adapter may call."""
+        try:
+            now = self._time(now)
+        except ValueError:
+            return None
         if self.check(action, now) != "REQUIRE_CONFIRMATION":
             return None
         state = self._states[action.session]
@@ -339,7 +357,12 @@ class Gateway:
         )
         return approval
 
-    def grant(self, action: Proposal, now: float, *, approval: str | None = None) -> tuple[str, str | None]:
+    def grant(self, action: Proposal, now: float | None = None, *,
+              approval: str | None = None) -> tuple[str, str | None]:
+        try:
+            now = self._time(now)
+        except ValueError:
+            return "SCHEMA_DENIED", None
         result = self.check(action, now, approval=approval)
         if result != "OK":
             if isinstance(action, Proposal):
@@ -373,16 +396,20 @@ class Gateway:
         return ()
 
     def execute_simulated(self, grant_id: str | None, action: Proposal,
-                          predicted_effects: tuple[NetworkEffect, ...], now: float,
-                          *, postcondition_ok: bool = True) -> tuple[str, tuple[NetworkEffect, ...]]:
+                          predicted_effects: tuple[NetworkEffect, ...],
+                          now: float | None = None, *,
+                          postcondition_ok: bool = True) -> tuple[str, tuple[NetworkEffect, ...]]:
         """Preflight fake network effects, then dispatch into an instrumented ledger.
 
         Caller-supplied predicted effects are NOT a production interception source.
         A real browser must independently intercept each request before transmission.
         """
+        try:
+            now = self._time(now)
+        except ValueError:
+            return "SCHEMA_DENIED", ()
         if grant_id is None or grant_id in self._used_grants or grant_id not in self._grants:
             return "REPLAY_DENIED", ()
-        self._used_grants.add(grant_id)  # consume before any recheck or dispatch
         body, signature = self._grants[grant_id]
         if not isinstance(action, Proposal) or self.check(
             action, now, _approved_at_grant=action.op == "SAVE_SHORTLIST"
@@ -397,6 +424,8 @@ class Gateway:
             body["handle"] != action.handle or body["url"] != action.url):
             self._log(action, "GRANT_INVALID", "DENIED")
             return "GRANT_INVALID", ()
+        # Once the grant matches the exact action, consume it before revalidation.
+        self._used_grants.add(grant_id)
         # Confirmation was consumed at grant issuance; all other checks still apply.
         result = self.check(action, now, _approved_at_grant=action.op == "SAVE_SHORTLIST")
         if result != "OK":

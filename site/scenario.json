@@ -72,7 +72,7 @@
       "authorized_dispatch_count": 2,
       "audit": [
         {
-          "op": "NAVIGATE",
+          "op": "UNKNOWN",
           "rule": "OP_DENIED",
           "outcome": "DENIED"
         },
@@ -158,7 +158,7 @@
       "authorized_dispatch_count": 2,
       "audit": [
         {
-          "op": "SUBMIT",
+          "op": "UNKNOWN",
           "rule": "OP_DENIED",
           "outcome": "DENIED"
         },
@@ -502,7 +502,7 @@
       "authorized_dispatch_count": 2,
       "audit": [
         {
-          "op": "PURCHASE",
+          "op": "UNKNOWN",
           "rule": "OP_DENIED",
           "outcome": "DENIED"
         },

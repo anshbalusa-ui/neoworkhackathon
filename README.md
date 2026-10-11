@@ -46,7 +46,7 @@ The builder checks exact names and byte equality against the Markdown sources. T
 
 ## Measured reference evidence
 
-On 11 October 2026, `python3 -m unittest discover -s tests -v` passed **25/25 tests** (0 failed, 0 skipped). The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Python compilation and the ZIP integrity/byte checks passed. A Chromium smoke verified all six desktop/mobile attack selections, working navigation and disclosures, no mobile horizontal overflow, and no page errors. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
+On 11 October 2026, `python3 -m unittest discover -s tests -v` passed **26/26 tests** (0 failed, 0 skipped). The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Python compilation and the ZIP integrity/byte checks passed. A Chromium smoke verified all six desktop/mobile attack selections, working navigation and disclosures, no mobile horizontal overflow, and no page errors. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
 
 ## Repository map and trust boundary
 

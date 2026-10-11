@@ -248,13 +248,33 @@ class SecurityPolicyTests(unittest.TestCase):
     def test_grant_replay_expiry_action_mutation_and_unknown(self):
         p = self.proposal("FILL_SEARCH", "search")
         _, grant = self.gateway.grant(p, 101)
-        self.assertEqual(self.gateway.execute_simulated(grant, replace(p, value="other"), (), 102)[0],
+        self.assertEqual(self.gateway.execute_simulated(
+            grant, replace(p, value="other"), (), 102
+        )[0], "GRANT_INVALID")
+        self.assertEqual(self.gateway.execute_simulated(grant, p, (), 102)[0],
+                         "SIMULATED_EXECUTED")
+        self.assertEqual(self.gateway.execute_simulated(grant, p, (), 103)[0],
+                         "REPLAY_DENIED")
+        self.assertEqual(self.gateway.execute_simulated("forged", p, (), 102)[0],
+                         "REPLAY_DENIED")
+        expiring = replace(p, idempotency_key="expiry")
+        _, fresh = self.gateway.grant(expiring, 101)
+        self.assertEqual(self.gateway.execute_simulated(fresh, expiring, (), 106)[0],
                          "GRANT_INVALID")
-        self.assertEqual(self.gateway.execute_simulated(grant, p, (), 102)[0], "REPLAY_DENIED")
-        self.assertEqual(self.gateway.execute_simulated("forged", p, (), 102)[0], "REPLAY_DENIED")
-        _, fresh = self.gateway.grant(p, 101)
-        self.assertEqual(self.gateway.execute_simulated(fresh, p, (), 106)[0], "GRANT_INVALID")
         self.assertEqual(self.gateway.actuator.dispatched, [])
+    def test_gateway_owned_clock_controls_omitted_time(self):
+        current = [100.0]
+        gateway = Gateway(key=b"test-only-key-never-deploy", clock=lambda: current[0])
+        intent = gateway.capture_intent(user="demo", profile="local", session="clock", tab=7)
+        state = replace(self.state, session="clock")
+        observation = gateway.install_browser_state(state)
+        action = Proposal(intent, "clock", 7, "doc-1", 4, observation.observation_id,
+                          "FILL_SEARCH", "search", value=QUERY, idempotency_key="clock-step")
+        status, grant = gateway.grant(action)
+        self.assertEqual(status, "GRANTED")
+        current[0] = 106.0
+        self.assertEqual(gateway.execute_simulated(grant, action, ())[0], "GRANT_INVALID")
+
 
     def test_idempotency_replay_and_step_budget(self):
         p = self.proposal("FILL_SEARCH", "search")
@@ -286,10 +306,16 @@ class SecurityPolicyTests(unittest.TestCase):
     def test_audit_contains_no_page_text_or_values(self):
         self.assert_blocked(self.proposal("SUBMIT", "product", value=PAYLOAD,
                                           url=f"{ATTACKER}/verify"), "OP_DENIED")
+        self.assert_blocked(replace(self.proposal("OPEN_PRODUCT", "product"),
+                                    op="PRIVATE_EMAIL=" + PAYLOAD), "OP_DENIED")
+        self.assert_blocked(replace(self.proposal("OPEN_PRODUCT", "product"),
+                                    intent="PRIVATE_EMAIL=" + PAYLOAD), "NO_USER_INTENT")
         audit = repr(self.gateway.audit)
         self.assertNotIn(PAYLOAD, audit)
         self.assertNotIn(ATTACKER, audit)
         self.assertNotIn("session token", audit)
+        self.assertNotIn("PRIVATE_EMAIL=", audit)
+        self.assertTrue(all(len(item.action_digest) == 64 for item in self.gateway.audit))
 
     def test_confirmation_not_substitute_for_intent(self):
         self.assertIsNone(self.gateway.approve_trusted(self.proposal("SAVE_SHORTLIST", "shortlist"), 101))
