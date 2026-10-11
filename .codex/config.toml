@@ -1,6 +1,6 @@
 # Suggested Codex settings; verify runtime model and effort before delegating.
-model = "gpt-6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-luna"
+model_reasoning_effort = "max"
 
 [agents]
 enabled = true
