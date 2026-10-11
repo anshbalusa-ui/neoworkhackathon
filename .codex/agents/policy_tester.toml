@@ -1,0 +1,4 @@
+name = "luna_policy_tester"
+description = "Own tests/ only. Add synthetic adversarial and positive tests. Never call real web endpoints or change root documents."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
