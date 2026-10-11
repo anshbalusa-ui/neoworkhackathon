@@ -34,7 +34,7 @@
 </div>
 <div class="panel browser"><div class="btop"><div class="dots"><i></i><i></i><i></i></div><div class="address">mock://shop.example/catalog · rendered local HTML fixture</div></div>
 <div class="screen"><iframe id="shop" title="Synthetic local keyboard shop with an attacker-controlled review" src="./mock_shop.html" sandbox="allow-scripts"></iframe></div>
-<div class="below"><span class="screenstate" id="browser-status"><strong>Ready</strong> · Awaiting agent</span><span class="mini">Local DOM replay · no live Grok</span></div></div>
+<div class="below"><span class="screenstate" id="browser-status"><strong>Ready</strong> · Awaiting agent</span><span class="mini">Local DOM replay · opt-in Grok planning</span></div></div>
 <div class="panel traces"><h2>02 · Inspect the trust boundary</h2>
 <div class="status" id="status" role="status" aria-live="polite">Choose either mode to evaluate the same compromised-planner proposal.</div>
 <div class="steps"><span class="step">User intent</span><span class="step">Page observation</span><span class="step">Proposed action</span><span class="step">Gateway verdict</span><span class="step">Safe continuation</span></div>
@@ -49,7 +49,7 @@
 </section>
 </main>
 <footer class="foot"><div class="container">
-<strong>What is real?</strong> The shopping site is actual local HTML, the browser controls change its DOM, and protected authorizations execute the Python Action Gateway. <strong>What is simulated?</strong> The malicious planner decision is deliberately assumed, executor and network effects are synthetic, and the unprotected outcome is hypothetical. This is not Norton Neo, an xAI/Grok inference, or production Chrome interception.
+<strong>What is real?</strong> The shopping site is actual local HTML, the browser controls change its DOM, and protected authorizations execute the Python Action Gateway. <strong>What is simulated?</strong> The malicious planner decision is deliberately assumed, executor and network effects are synthetic, and the unprotected outcome is hypothetical. The default compromise demonstration does not call Grok. The optional model-backed planner does use xAI when explicitly enabled, but it still cannot issue production browser actions. Nothing here is Norton Neo or Chrome-level security interception.
 <a href="../neo-action-security-architecture.md">Read architecture</a> · <a href="../DEMO_GUIDE.md">Reviewer script</a></div></footer>
 <script>
 'use strict';
