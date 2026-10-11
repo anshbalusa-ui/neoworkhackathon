@@ -48,6 +48,7 @@ class Gateway:
         self._intents = {}
         self._grants = {}
         self._used = set()
+        self._steps = {}
         self.audit_ok = True
 
     def _mac(self, data):
@@ -57,8 +58,9 @@ class Gateway:
         if not query or len(query) > 120:
             raise ValueError("invalid query")
         iid = secrets.token_hex(12)
-        data = {"tab": tab, "query": query, "origin": ORIGIN, "expires": now+120, "steps": 0}
+        data = {"tab": tab, "query": query, "origin": ORIGIN, "expires": now+120,}
         self._intents[iid] = (data, self._mac(data))
+        self._steps[iid] = 0
         return iid
 
     def _safe_url(self, url, query):
@@ -82,7 +84,7 @@ class Gateway:
         if not record:
             return "NO_USER_INTENT"
         intent, signature = record
-        if not compare_digest(self._mac(intent), signature) or now >= intent["expires"] or intent["steps"] >= 8:
+        if not compare_digest(self._mac(intent), signature) or now >= intent["expires"] or self._steps[action.intent] >= 8:
             return "INVALID_INTENT"
         if action.op not in OPS:
             return "OP_DENIED"
@@ -129,8 +131,5 @@ class Gateway:
         expected = [("GET", action.url)] if action.op == "NAVIGATE_PUBLIC_GET" else []
         if effects != expected:
             return "NETWORK_FENCE_DENIED", []
-        self._intents[action.intent][0]["steps"] += 1
-        # Re-sign after updating counter. (This is simulated state, not immutable intent!)
-        data, _ = self._intents[action.intent]
-        self._intents[action.intent] = (data, self._mac(data))
+        self._steps[action.intent] += 1
         return "SIMULATED_EXECUTED", list(effects)
