@@ -24,10 +24,11 @@ Requires Python 3.10+; standard library only. No API keys, external accounts, re
 python3 -m unittest discover -s tests -v
 python3 -m reference.scenario --write-site
 python3 -m reference.assurance  # deterministic counterfactual assurance results
+python3 -m reference.confirmation_scenario  # synthetic future-adapter confirmation decisions
 python3 -m reference.demo_server
 ```
 
-Open **http://127.0.0.1:8765/site/**. Choose “Malicious review · external navigation” or “Hidden DOM · private data submission.” The local server reruns the Python gateway for each selection and displays its rule-coded denial, zero unauthorized fake-actuator dispatches, four authorized continuation actions, redacted audit and final `SAFE_COMPLETE` outcome. Other selectors show ARIA link poisoning, forged tool handles, over-price bait and system-message impersonation. The **Assurance Lab** on the site performs a fresh 336-challenge synthetic sweep through `GET /api/assurance` when using the loopback-only demo server; static hosting honestly reports that live assurance is unavailable. Use Ctrl-C to stop the server. The site also works under a basic static HTTP server with committed `site/scenario.json`; it then labels decisions as generated snapshots rather than live policy evaluations.
+Open **http://127.0.0.1:8765/site/**. Choose “Malicious review · external navigation” or “Hidden DOM · private data submission.” The local server reruns the Python gateway for each selection and displays its rule-coded denial, zero unauthorized fake-actuator dispatches, four authorized continuation actions, redacted audit and final `SAFE_COMPLETE` outcome. Other selectors show ARIA link poisoning, forged tool handles, over-price bait and system-message impersonation. The **Assurance Lab** performs a fresh 336-challenge synthetic sweep through `GET /api/assurance`, while the **Confirmation Lab** evaluates four scenarios through `GET /api/confirmation?id=...`. Both require the loopback-only Python server; static hosting honestly reports when live evaluation is unavailable. Use Ctrl-C to stop the server. The site also works under a basic static HTTP server with committed `site/scenario.json`; it then labels decisions as generated snapshots rather than live policy evaluations.
 
 For a CLI-only trace:
 
@@ -47,7 +48,7 @@ The builder checks exact names and byte equality against the Markdown sources. T
 
 ## Measured reference evidence
 
-On 11 October 2026, the latest GitHub Actions verification passed **29/29 tests** (0 failed, 0 skipped). The new Adversarial Assurance Lab independently exercised **264/264 malformed or out-of-intent planner proposals denied**, **264/264 legitimate continuations recovered**, and **72/72 unexpected redirect/POST/beacon effect-ledger mutations rejected before synthetic dispatch**. Every adversarial proposal was sent directly to the gateway, assuming an entirely fooled model. The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Python compilation and the ZIP integrity/byte checks passed. A Chromium smoke verified all six desktop/mobile attack selections, working navigation and disclosures, no mobile horizontal overflow, and no page errors. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
+On 11 October 2026, the latest GitHub Actions verification passed **31/31 tests** (0 failed, 0 skipped). The new Adversarial Assurance Lab independently exercised **264/264 malformed or out-of-intent planner proposals denied**, **264/264 legitimate continuations recovered**, and **72/72 unexpected redirect/POST/beacon effect-ledger mutations rejected before synthetic dispatch**. Every adversarial proposal was sent directly to the gateway, assuming an entirely fooled model. The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Python compilation and the ZIP integrity/byte checks passed. A Chromium smoke verified all six desktop/mobile attack selections, working navigation and disclosures, no mobile horizontal overflow, and no page errors. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
 
 ## Repository map and trust boundary
 
@@ -56,9 +57,10 @@ On 11 October 2026, the latest GitHub Actions verification passed **29/29 tests*
 | `reference/policy_gate.py` | Dependency-free immutable shopping intent, typed proposals, current-handle checks, risk/approval, one-use grant, synthetic preflight fence, redacted audit. |
 | `reference/scenario.py` | Coherent keyboard-shopping attack fixture and generated policy evidence for the site/CLI. |
 | `reference/assurance.py` | Reproducible, seed-controlled adversarial sweep of planner proposals and simulated effect-fence attacks; JSON output for CLI and local demo. |
+| `reference/confirmation_scenario.py` | Four deterministic future-adapter decisions demonstrating that native approval is one-use and never widens user intent. |
 | `reference/demo_server.py` | Loopback-only handoff server; invokes the Python simulator per attack selection. |
 | `site/index.html`, `site/scenario.json` | Responsive, accessible technical demo with simulator-backed decisions. No external scripts or tracking. |
-| `tests/test_policy_gate.py`, `tests/test_assurance.py` | Positive and adversarial policy/effect-ledger regressions, including direct malicious planner proposals, mutated cases and safe continuation. |
+| `tests/test_policy_gate.py`, `tests/test_assurance.py`, `tests/test_confirmation_demo.py` | Positive and adversarial policy/effect-ledger regressions, including direct malicious planner proposals, mutated cases and safe continuation. |
 | `scripts/build_submission.py` | Validated three-file ZIP packaging. |
 | `ENGINEERING_HANDOFF.md` | Ownership, build order, integration contracts, release gates and unresolved risks. |
 | `AGENTS.md`, `CODEX_MASTER_PROMPT.md` | Repository execution/safety guidance. |
@@ -71,7 +73,7 @@ The simulator's `capture_intent`, `install_browser_state`, and `approve_trusted`
 
 The Gen Digital challenge is ultimately about an agent that reads personal data, uses applications and takes action. The narrow keyboard example is intentional: it is a reproducible authorization case, not a claim that general browser automation is solved. **Counterfactual assurance** tests the crucial question independently of model behavior: *If a hostile page convinces the model to propose a dangerous action, does the privileged boundary still refuse it?* The experiment also probes unexpected effects after a permitted click. The public metrics are denominators for defined synthetic threats only, not a universal security score.
 
-Run `python3 -m reference.assurance` to reproduce the structured results. In the local demo, open the **Assurance Lab** and press **Run 336 security challenges**. No real credentials, model provider, or external network requests are needed.
+Run `python3 -m reference.assurance` to reproduce the structured results. In the local demo, open the **Assurance Lab** and press **Run 336 security challenges**. Then inspect the **Confirmation Lab**: only an action already present in the trusted intent, combined with an exact single-use simulated native approval, can reach the fake actuator; a malicious page request alone cannot. Run `python3 -m reference.confirmation_scenario` for the corresponding JSON evidence. No real credentials, model provider, or external network requests are needed.
 
 ## Production integration obligations
 
