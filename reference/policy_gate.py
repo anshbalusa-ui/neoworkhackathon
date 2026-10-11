@@ -103,6 +103,14 @@ class NetworkEffect:
 
 
 @dataclass(frozen=True)
+class LocalEffect:
+    """Sensitive browser-local effect, simulated only; requires native enforcement."""
+    kind: str
+    target: str = ""
+    data_class: str = "PUBLIC_CATALOG_QUERY"
+
+
+@dataclass(frozen=True)
 class AuditEntry:
     intent_id: str
     rule: str
@@ -398,10 +406,12 @@ class Gateway:
     def execute_simulated(self, grant_id: str | None, action: Proposal,
                           predicted_effects: tuple[NetworkEffect, ...],
                           now: float | None = None, *,
-                          postcondition_ok: bool = True) -> tuple[str, tuple[NetworkEffect, ...]]:
+                          postcondition_ok: bool = True,
+                          unexpected_local_effects: tuple[LocalEffect, ...] = (),
+                          ) -> tuple[str, tuple[NetworkEffect, ...]]:
         """Preflight fake network effects, then dispatch into an instrumented ledger.
 
-        Caller-supplied predicted effects are NOT a production interception source.
+        Caller-supplied predicted network/local effects are NOT a production interception source.
         A real browser must independently intercept each request before transmission.
         """
         try:
@@ -431,6 +441,14 @@ class Gateway:
         if result != "OK":
             self._log(action, result, "DENIED")
             return result, ()
+        if (not isinstance(unexpected_local_effects, tuple) or
+            unexpected_local_effects):
+            # The reviewed v1 adapter expects only direct input-field updates
+            # and scrolling. Clipboard, storage, downloads, prompts, popups,
+            # and other unreviewed browser effects have no authorization.
+            self.halted.add(action.intent)
+            self._log(action, "LOCAL_EFFECT_DENIED", "HALTED")
+            return "LOCAL_EFFECT_DENIED", ()
         if not isinstance(predicted_effects, tuple) or predicted_effects != self._expected_effects(action):
             self.halted.add(action.intent)
             self._log(action, "NETWORK_FENCE_DENIED", "HALTED")
