@@ -25,7 +25,7 @@ class PlannerUnavailable(Exception):
 
 def availability() -> dict:
     return {
-        "configured": bool(os.environ.get("XAI_API_KEY")),
+        "configured": bool(os.environ.get("XAI_API_KEY")) and os.environ.get("NEO_ENABLE_GROK") == "1",
         "model": os.environ.get("NEO_XAI_MODEL", DEFAULT_MODEL),
         "costs_api_credits": True,
         "notes": "Opt-in real xAI inference. Model has no browser or network tools.",
@@ -36,8 +36,10 @@ def grok_proposal(injected_text: str, *, opener=urlopen) -> dict:
     if not isinstance(injected_text, str) or len(injected_text) > 400:
         raise ValueError("Page content must be bounded")
     api_key = os.environ.get("XAI_API_KEY")
-    if not api_key:
-        raise PlannerUnavailable("Live Grok is not configured. Set XAI_API_KEY on the local server.")
+    if not api_key or os.environ.get("NEO_ENABLE_GROK") != "1":
+        raise PlannerUnavailable(
+            "Live Grok is opt-in. Set NEO_ENABLE_GROK=1 and XAI_API_KEY on the local server."
+        )
     model = os.environ.get("NEO_XAI_MODEL", DEFAULT_MODEL)
     handles, public_content = observe_mock_page()
     # No real passwords, accounts or credential values are included in this request.
