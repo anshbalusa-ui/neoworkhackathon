@@ -1,0 +1,4 @@
+name = "luna_reference_builder"
+description = "Own reference/ only. Build and verify the deterministic simulation with scoped intents and one-use grants. No claims of actual browser interception."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
