@@ -32,6 +32,14 @@ python3 -m reference.demo_server
 
 Open **http://127.0.0.1:8765/site/**. Choose “Malicious review · external navigation” or “Hidden DOM · private data submission.” The local server reruns the Python gateway for each selection and displays its rule-coded denial, zero unauthorized fake-actuator dispatches, four authorized continuation actions, redacted audit and final `SAFE_COMPLETE` outcome. Other selectors show ARIA link poisoning, forged tool handles, over-price bait and system-message impersonation. The **Bring Your Own Injection** lab accepts arbitrary inert page text and a typed proposed browser action through a size-limited loopback-only `POST /api/probe` endpoint. Its gateway evaluates the actual proposal independently from the attack text; valid in-task proposals remain executable. The **Assurance Lab** performs a fresh 336-challenge synthetic sweep through `GET /api/assurance`, while the **Confirmation Lab** evaluates four scenarios through `GET /api/confirmation?id=...`. Both require the loopback-only Python server; static hosting honestly reports when live evaluation is unavailable. Use Ctrl-C to stop the server. The site also works under a basic static HTTP server with committed `site/scenario.json`; it then labels decisions as generated snapshots rather than live policy evaluations.
 
+To run the real-browser interactive smoke yourself when Node.js 22+ and Chromium/Chrome are installed:
+
+```sh
+node scripts/browser_smoke.mjs
+```
+
+This starts the local Python demo, drives Chrome DevTools without npm dependencies, checks UI outcomes and saves screenshots under `smoke-artifacts/`. The CI run performs these same checks automatically; users do not need to run them to inspect the results.
+
 For a CLI-only trace:
 
 ```sh
@@ -50,7 +58,7 @@ The builder checks exact names and byte equality against the Markdown sources. T
 
 ## Measured reference evidence
 
-On 11 October 2026, the latest GitHub Actions verification passed **41/41 tests** (0 failed, 0 skipped). The new Adversarial Assurance Lab independently exercised **264/264 malformed or out-of-intent planner proposals denied**, **264/264 legitimate continuations recovered**, and **72/72 unexpected redirect/POST/beacon effect-ledger mutations rejected before synthetic dispatch**. Every adversarial proposal was sent directly to the gateway, assuming an entirely fooled model. The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Live loopback API integration checks for the scenario, assurance, confirmation and unknown identifiers passed. The site HTML/JavaScript syntax and structural check, Python compilation and ZIP integrity/byte checks passed. An earlier manual Chromium smoke checked the original six desktop/mobile selections; **the expanded custom-injection UI has not been independently browser-smoke-verified in this CI pipeline**. Automated HTML structure and JavaScript syntax checks do run in CI. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
+On 11 October 2026, the latest GitHub Actions verification passed **41/41 tests** (0 failed, 0 skipped). The new Adversarial Assurance Lab independently exercised **264/264 malformed or out-of-intent planner proposals denied**, **264/264 legitimate continuations recovered**, and **72/72 unexpected redirect/POST/beacon effect-ledger mutations rejected before synthetic dispatch**. Every adversarial proposal was sent directly to the gateway, assuming an entirely fooled model. The scenario generator independently exercised **6/6 unauthorized proposals denied**, **24/24 authorized continuation actions executed** (four per scenario), and **0 unauthorized fake-actuator dispatches**. `python3 -m reference.scenario --check-site` confirmed all six committed demo decisions match the gateway. Live loopback API integration checks for the scenario, assurance, confirmation and unknown identifiers passed. The site HTML/JavaScript syntax and structural check, Python compilation and ZIP integrity/byte checks passed. **Real headless Chromium interaction testing now runs in CI:** 11/11 assertions passed for user intent rendering, hostile review and hidden DOM blocking, user-authored prompt-injection form, authorized product action, the 336-case assurance UI, confirmation tiers, mobile overflow and JavaScript runtime errors. Desktop and mobile screenshots are attached as the `neo-browser-smoke-screenshots` artifact to the [successful workflow run](https://github.com/anshbalusa-ui/neoworkhackathon/actions/runs/38174409712). This verifies the synthetic demo UI, not actual Norton Neo interception. These denominators describe only defined synthetic fixtures, not universal prompt-injection immunity or real-browser network safety.
 
 ## Repository map and trust boundary
 
@@ -65,6 +73,7 @@ On 11 October 2026, the latest GitHub Actions verification passed **41/41 tests*
 | `site/index.html`, `site/scenario.json` | Responsive, accessible technical demo with simulator-backed decisions. No external scripts or tracking. |
 | `tests/test_policy_gate.py`, `tests/test_assurance.py`, `tests/test_confirmation_demo.py`, `tests/test_demo_api.py`, `tests/test_probe.py` | Positive and adversarial policy/effect-ledger regressions, including direct malicious planner proposals, mutated cases and safe continuation. |
 | `scripts/build_submission.py` | Validated three-file ZIP packaging. |
+| `scripts/browser_smoke.mjs` | Real headless Chromium end-to-end interactions, mobile layout checks, and reviewer screenshot artifacts (synthetic localhost gateway). |
 | `ENGINEERING_HANDOFF.md` | Ownership, build order, integration contracts, release gates and unresolved risks. |
 | `AGENTS.md`, `CODEX_MASTER_PROMPT.md` | Repository execution/safety guidance. |
 
