@@ -9,6 +9,7 @@ import json
 import os
 
 from .scenario import generate
+from .assurance import run_sweep
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +20,17 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         url = urlsplit(self.path)
+        if url.path == "/api/assurance":
+            # Deterministic local synthetic test sweep; no outward network requests.
+            body = json.dumps(run_sweep(), ensure_ascii=False).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if url.path == "/api/scenario":
             params = parse_qs(url.query)
             identifier = params.get("id", [""])[0]
