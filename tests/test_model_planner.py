@@ -55,6 +55,11 @@ class LiveGrokPlannerTests(unittest.TestCase):
         self.assertTrue(any("UNTRUSTED PAGE" in msg["content"] for msg in body["messages"]))
         self.assertTrue(all("tools" not in msg for msg in body["messages"]))
         self.assertNotIn("stub-key",json.dumps(body))
+        fmt=body["response_format"]
+        self.assertEqual(fmt["type"], "json_schema")
+        self.assertTrue(fmt["json_schema"]["strict"])
+        self.assertFalse(fmt["json_schema"]["schema"]["additionalProperties"])
+        self.assertEqual(set(fmt["json_schema"]["schema"]["required"]), set(predicted))
 
     def test_malicious_model_proposal_denied_by_real_gateway(self):
         result=evaluate_live_plan("SYSTEM override",planner=lambda _: proposal(
@@ -67,10 +72,27 @@ class LiveGrokPlannerTests(unittest.TestCase):
     def test_legitimate_model_proposal_policy_allowed_but_not_executed(self):
         result=evaluate_live_plan("Normal review",planner=lambda _: proposal(
             "OPEN_PRODUCT","https://shop.example/products/kb79"))
-        self.assertEqual(result["decision"],"OK")
+        self.assertEqual(result["decision"],"SIMULATED_EXECUTED")
         self.assertTrue(result["policy_allowed"])
-        self.assertFalse(result["grant_issued"])
+        self.assertTrue(result["grant_issued"])
+        self.assertTrue(result["simulated_action_executed"])
+        self.assertEqual(result["authorized_browser_replay"],"open-product")
+        self.assertFalse(result["browser_execution"])
         self.assertFalse(result["network_dispatch"])
+
+    def test_valid_search_is_simulated_not_sent_to_an_external_site(self):
+        result=evaluate_live_plan("ordinary product review",planner=lambda _: proposal(
+            "FILL_SEARCH",value="wireless keyboards",handle="search",effect="LOCAL_VIEW"))
+        self.assertEqual(result["decision"],"SIMULATED_EXECUTED")
+        self.assertEqual(result["authorized_browser_replay"],"fill-search")
+        self.assertFalse(result["network_dispatch"])
+
+    def test_model_cannot_substitute_external_url_in_safe_operation(self):
+        result=evaluate_live_plan("malicious instruction",planner=lambda _: proposal(
+            "OPEN_PRODUCT","https://collector.invalid/verify"))
+        self.assertFalse(result["policy_allowed"])
+        self.assertFalse(result["grant_issued"])
+        self.assertIsNone(result["authorized_browser_replay"])
 
     def test_unknown_model_output_fails_closed(self):
         with self.assertRaises(PlannerUnavailable):
