@@ -55,7 +55,7 @@ document.querySelector('#filter').addEventListener('click', () => {
   document.querySelector('#count').textContent=count+' products below selected ceiling';
 });
 window.addEventListener('message', event => {
-  if(event.source!==parent || event.origin!==location.origin) return;
+  if(event.source!==parent || !document.referrer || event.origin!==new URL(document.referrer).origin) return;
   const message=event.data;
   if(!message || message.channel!=='neo-mock-fixture' || typeof message.action!=='string') return;
   if(message.action==='reset') {
