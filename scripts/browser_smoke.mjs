@@ -153,6 +153,7 @@ try {
   await engine.eval("window.scrollTo(0,350)");
   await engine.screenshot("agent-protected.png");
 
+  await engine.wait("!document.querySelector(\'#unprotected\').disabled","protected animation completed");
   await engine.eval("document.querySelector('#unprotected').click()");
   await engine.wait("document.querySelector('#timeline')?.textContent.includes('SIMULATED FAILURE')","unprotected baseline result");
   ok((await engine.eval("document.querySelector('#status').textContent")).includes("UNPROTECTED"),"comparison explicitly labeled hypothetical");
