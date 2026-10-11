@@ -14,6 +14,8 @@ The committed [**neo-action-security-architecture.zip**](neo-action-security-arc
 2. [neo-action-threat-model.md](neo-action-threat-model.md) — 17 classified threats, including every required injection and browser-effect category.
 3. [neo-action-confirmation-policy.md](neo-action-confirmation-policy.md) — deterministic autonomous/confirmation/denial decision matrix.
 
+A [**90-second reviewer demo guide**](DEMO_GUIDE.md) shows the attack, direct gateway bypass attempt, assurance sweep and authorization-vs-confirmation decision in a concise judge walkthrough.
+
 Additional [engineering handoff](ENGINEERING_HANDOFF.md), [interactive demo](site/index.html), code and tests remain in the repository, not the submission ZIP.
 
 ## Run the malicious-page scenario
