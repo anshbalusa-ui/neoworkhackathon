@@ -29,6 +29,18 @@ jobs:
         run: python3 -m unittest discover -s tests -v
       - name: Verify simulator-backed site evidence
         run: python3 -m reference.scenario --check-site
+      - name: Counterfactual adversarial assurance
+        run: |
+          python3 - <<'PY'
+          from reference.assurance import run_sweep
+          evidence = run_sweep(seed=3470, rounds=24)
+          print(f"Proposals denied: {evidence['blocked']}/{evidence['attempted']}")
+          print(f"Safe task recoveries: {evidence['safe_recoveries']}/{evidence['attempted']}")
+          print(f"Unexpected network effects blocked: {evidence['effect_blocked']}/{evidence['effect_attempted']}")
+          assert evidence['status'] == 'PASS', evidence
+          PY
+      - name: Validate site HTML and JavaScript
+        run: python3 scripts/validate_site.py
       - name: Validate committed archive, then rebuild
         run: |
           python3 - <<'PY'
