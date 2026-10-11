@@ -43,9 +43,9 @@
 <section class="panel" style="margin:0 0 28px" aria-labelledby="live-title">
 <div class="eyebrow">Optional model-backed demonstration</div>
 <h2 id="live-title" style="margin:9px 0;font-size:21px">Let real Grok suggest the next action.</h2>
-<p>Our reproducible attack uses a deliberately compromised planner so the firewall—not the model's refusal—gets tested. With an explicitly enabled xAI API key, you can also ask Grok to plan <em>one</em> step from the same local storefront and see the gateway verdict. This optional button sends the synthetic task and review text to xAI and may incur API charges; Grok receives no browser, secrets, or execution tools.</p>
+<p>Our reproducible attack uses a deliberately compromised planner so the firewall—not the model's refusal—gets tested. With an explicitly enabled xAI API key, you can also ask Grok to plan <em>one</em> step from the same local storefront and see the gateway verdict. This optional button sends the synthetic task and review text to xAI and may incur API charges. Grok has no browser tools or secrets; if the gateway authorizes its next action, the mock page replays that single approved step.</p>
 <div class="buttons" style="max-width:440px"><button id="live-plan-button" class="btn" type="button" disabled>Ask Grok to propose an action</button><span id="live-plan-config" class="chip" style="align-self:center">Checking configuration…</span></div>
-<div id="live-plan-result" class="status" role="status" aria-live="polite" style="margin-top:12px">One-step live inference is opt-in and is not part of the offline demo.</div>
+<div id="live-plan-result" class="status" role="status" aria-live="polite" style="margin-top:12px">Live Grok proposes one typed step. The Action Gateway decides whether to simulate it; offline demo stays independent.</div>
 </section>
 </main>
 <footer class="foot"><div class="container">
@@ -163,9 +163,16 @@ async function runLivePlanner() {
     const title=document.createElement('strong');
     title.textContent='Model proposal: '+plan.op+' → gateway: '+report.decision;
     const detail=document.createElement('p');
+    const safeActions=new Set(['fill-search','fill-price','filter','open-product']);
+    const approvedReplay=report.simulated_action_executed &&
+      safeActions.has(report.authorized_browser_replay) &&
+      report.decision==='SIMULATED_EXECUTED';
+    if(approvedReplay)send(report.authorized_browser_replay);
     detail.textContent='Target: '+(plan.handle||'none')+' · '+(plan.url||plan.value||'no destination')+
-      ' · Gateway would '+(report.policy_allowed?'authorize this in-scope step.':'deny this action.')+
-      ' No execution grant was issued; no browser action occurred.';
+      (approvedReplay
+        ? ' · Gateway issued a one-use grant. Fake actuator validated it and replayed this one approved step on the local storefront.'
+        : ' · Gateway denied or did not execute this proposal. No storefront action replayed.')+
+      ' No external network request or production browser action occurred.';
     output.append(title,detail);
   } catch (_) {
     output.textContent='Live Grok was not available or returned an invalid action. No grant or browser action occurred.';
