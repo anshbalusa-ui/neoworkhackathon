@@ -21,7 +21,7 @@
 <section id="assurance" aria-labelledby="assurance-title">
 <div class="section-header"><div><div class="eyebrow">03 / Counterfactual evidence</div><h2 id="assurance-title">What if the planner is fully compromised?</h2></div><p class="muted">Don't ask the language model to recognize an injection. Feed intentionally malicious proposals straight to the Action Gateway, then measure whether authorization holds and whether the user’s legitimate task can continue.</p></div>
 <div class="grid">
-  <div class="panel"><span class="data-label">Adversarial Assurance Lab</span><h3>11 attack families · 24 mutations each</h3><p class="muted">Exercises unauthorized operations, destinations, disclosure classes, recipients, forged handles, URL substitutions, changed search intent, stale documents, cross-session proposals, incorrect roles, and attempts to treat confirmation as permission. Fixed seed = 3470.</p><div class="actions"><button class="button primary" id="run-assurance" type="button">Run 264 policy challenges</button><a class="button" href="../reference/assurance.py">Inspect the harness</a></div><p class="status" id="assurance-status" role="status" aria-live="polite">Run the local Python demo server to execute this measured counterfactual test.</p></div>
+  <div class="panel"><span class="data-label">Adversarial Assurance Lab</span><h3>11 proposal attack families + 3 effect-fence families</h3><p class="muted">Exercises unauthorized operations, destinations, disclosure classes, recipients, forged handles, URL substitutions, changed search intent, stale documents, cross-session proposals, incorrect roles, and attempts to treat confirmation as permission. Fixed seed = 3470. In addition, 72 synthetic click-handler/redirect/POST mutations challenge the pre-effect network fence.</p><div class="actions"><button class="button primary" id="run-assurance" type="button">Run 336 security challenges</button><a class="button" href="../reference/assurance.py">Inspect the harness</a></div><p class="status" id="assurance-status" role="status" aria-live="polite">Run the local Python demo server to execute this measured counterfactual test.</p></div>
   <div class="panel"><span class="data-label">Measured results · local Python only</span><div class="facts" id="assurance-facts"><div class="fact"><b>Not yet run</b><span>No simulated assurance result has been loaded.</span></div></div><details><summary>Show each tested attack family and denial reasons</summary><div id="assurance-matrix" class="trace code"><p>Execute the sweep to display real policy decisions.</p></div></details><p class="muted">These tests do not prove live browser interception, model robustness, or universal agent safety. A production system also requires browser-level effect interception and independent red-team review.</p></div>
 </div>
 </section>
@@ -88,7 +88,7 @@ $('run-attack').addEventListener('click',evaluate);
 $('attack-select').addEventListener('change',evaluate);
 async function runAssurance() {
   const button=$('run-assurance'), status=$('assurance-status');
-  button.disabled=true; status.textContent='Running 264 synthetic policy challenges against the local Python gateway…';
+  button.disabled=true; status.textContent='Running 264 malicious proposals and 72 effect-fence mutations…';
   try {
     const response=await fetch('/api/assurance',{cache:'no-store'});
     if(!response.ok) throw new Error('Assurance API not available');
@@ -99,7 +99,8 @@ async function runAssurance() {
       ['Direct malicious proposals',String(report.attempted)],
       ['Denied by gateway',String(report.blocked)],
       ['Safe task recoveries',String(report.safe_recoveries)],
-      ['Unexpected authorizations',String(report.unexpected_authorizations)]]) {
+      ['Unexpected authorizations',String(report.unexpected_authorizations)],
+      ['Network-effect probes blocked',String(report.effect_blocked)+'/'+String(report.effect_attempted)]]) {
       const box=node('div','', 'fact');box.append(node('b',value));box.append(node('span',label));facts.append(box);
     }
     const matrix=$('assurance-matrix');matrix.replaceChildren();
@@ -107,6 +108,10 @@ async function runAssurance() {
       const line=family.id.replaceAll('_',' ')+' · '+family.blocked+'/'+family.attempted+
         ' denied · rules: '+Object.entries(family.rules).map(([rule,count])=>rule+' ('+count+')').join(', ');
       addRow(matrix,line,family.violations.length?'bad':'good');
+    }
+    for (const [id,family] of Object.entries(report.effect_families||{})) {
+      addRow(matrix,'Network effect: '+id.replaceAll('_',' ')+' · '+family.blocked+'/'+family.attempted+
+        ' blocked before synthetic dispatch',family.violations.length?'bad':'good');
     }
     status.textContent=report.status==='PASS'
       ? 'PASS: every defined malicious proposal was denied and the authorized task recovered. Local synthetic harness only.'
