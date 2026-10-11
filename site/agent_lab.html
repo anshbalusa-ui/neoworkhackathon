@@ -40,6 +40,13 @@
 <div class="steps"><span class="step">User intent</span><span class="step">Page observation</span><span class="step">Proposed action</span><span class="step">Gateway verdict</span><span class="step">Safe continuation</span></div>
 <div id="timeline" class="timeline" aria-live="polite"><p class="empty">The action timeline will appear here.</p></div></div>
 </section>
+<section class="panel" style="margin:0 0 28px" aria-labelledby="live-title">
+<div class="eyebrow">Optional model-backed demonstration</div>
+<h2 id="live-title" style="margin:9px 0;font-size:21px">Let real Grok suggest the next action.</h2>
+<p>Our reproducible attack uses a deliberately compromised planner so the firewall—not the model's refusal—gets tested. With an explicitly enabled xAI API key, you can also ask Grok to plan <em>one</em> step from the same local storefront and see the gateway verdict. This optional button sends the synthetic task and review text to xAI and may incur API charges; Grok receives no browser, secrets, or execution tools.</p>
+<div class="buttons" style="max-width:440px"><button id="live-plan-button" class="btn" type="button" disabled>Ask Grok to propose an action</button><span id="live-plan-config" class="chip" style="align-self:center">Checking configuration…</span></div>
+<div id="live-plan-result" class="status" role="status" aria-live="polite" style="margin-top:12px">One-step live inference is opt-in and is not part of the offline demo.</div>
+</section>
 </main>
 <footer class="foot"><div class="container">
 <strong>What is real?</strong> The shopping site is actual local HTML, the browser controls change its DOM, and protected authorizations execute the Python Action Gateway. <strong>What is simulated?</strong> The malicious planner decision is deliberately assumed, executor and network effects are synthetic, and the unprotected outcome is hypothetical. This is not Norton Neo, an xAI/Grok inference, or production Chrome interception.
@@ -128,5 +135,44 @@ async function run(mode){
 $('protected').addEventListener('click',()=>run('protected'));
 $('unprotected').addEventListener('click',()=>run('unprotected'));
 $('step-button').addEventListener('click',()=>{serial++;playing=false;step();$('protected').disabled=false;$('unprotected').disabled=false;});
+
+async function detectLivePlanner() {
+  try {
+    const response=await fetch('/api/live-plan-status',{cache:'no-store'});
+    if(!response.ok)throw new Error('No planner service');
+    const config=await response.json();
+    $('live-plan-config').textContent=config.configured?'Configured: '+config.model:'Not configured · optional';
+    $('live-plan-button').disabled=!config.configured;
+  } catch (_) {
+    $('live-plan-config').textContent='Server unavailable';
+  }
+}
+async function runLivePlanner() {
+  const button=$('live-plan-button'),output=$('live-plan-result');
+  button.disabled=true;output.textContent='Asking real Grok to propose one action. No browser execution tools are provided…';
+  try {
+    const response=await fetch('/api/live-plan',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({injected_text:$('payload').value}),cache:'no-store'
+    });
+    if(!response.ok)throw Error('Live inference unavailable or model output invalid');
+    const report=await response.json();
+    const plan=report.plan;
+    if(!plan||typeof report.decision!=='string')throw Error('Invalid response');
+    output.replaceChildren();
+    const title=document.createElement('strong');
+    title.textContent='Model proposal: '+plan.op+' → gateway: '+report.decision;
+    const detail=document.createElement('p');
+    detail.textContent='Target: '+(plan.handle||'none')+' · '+(plan.url||plan.value||'no destination')+
+      ' · Gateway would '+(report.policy_allowed?'authorize this in-scope step.':'deny this action.')+
+      ' No execution grant was issued; no browser action occurred.';
+    output.append(title,detail);
+  } catch (_) {
+    output.textContent='Live Grok was not available or returned an invalid action. No grant or browser action occurred.';
+  } finally {button.disabled=false;}
+}
+$('live-plan-button').addEventListener('click',runLivePlanner);
+detectLivePlanner();
+
 </script>
 </body></html>
