@@ -138,6 +138,35 @@ try {
   const size=await engine.eval("({scroll:document.documentElement.scrollWidth,viewport:window.innerWidth})");
   ok(size.scroll<=size.viewport+2,"mobile has no horizontal overflow ("+size.scroll+"/"+size.viewport+")");
   await engine.screenshot("mobile.png");
+
+  // New centerpiece: an actual local mock storefront rendered in a sandboxed
+  // iframe, with real Python authorization decisions and UI action replay.
+  await engine.call("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await engine.call("Page.navigate",{url:"http://127.0.0.1:"+pyPort+"/site/agent_lab.html"});
+  await engine.wait("document.querySelector('#shop') && typeof iframeReady !== 'undefined' && iframeReady","mock shopping iframe loaded");
+  ok((await engine.eval("document.querySelector('#shop').getAttribute('sandbox')"))==="allow-scripts","hostile mock page has sandboxed opaque origin");
+  await engine.eval("document.querySelector('#protected').click()");
+  await engine.wait("document.querySelector('#timeline')?.textContent.includes('SAFE COMPLETE')","protected mock browsing flow");
+  ok((await engine.eval("document.querySelector('#status').textContent")).includes("PROTECTED"),"protected gateway verdict displayed");
+  ok((await engine.eval("document.querySelector('#safe').textContent"))==="4","legitimate shopping path completes four actions");
+  ok((await engine.eval("document.querySelector('#egress').textContent"))==="0","no real unauthorized network dispatch");
+  await engine.eval("window.scrollTo(0,350)");
+  await engine.screenshot("agent-protected.png");
+
+  await engine.eval("document.querySelector('#unprotected').click()");
+  await engine.wait("document.querySelector('#timeline')?.textContent.includes('SIMULATED FAILURE')","unprotected baseline result");
+  ok((await engine.eval("document.querySelector('#status').textContent")).includes("UNPROTECTED"),"comparison explicitly labeled hypothetical");
+  ok((await engine.eval("document.querySelector('#egress').textContent"))==="0","unprotected branch has zero real egress");
+  await engine.eval("window.scrollTo(0,350)");
+  await engine.screenshot("agent-unprotected.png");
+
+  await engine.call("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await sleep(350);
+  const labSize=await engine.eval("({scroll:document.documentElement.scrollWidth,viewport:window.innerWidth})");
+  ok(labSize.scroll<=labSize.viewport+2,"agent lab mobile has no horizontal overflow ("+labSize.scroll+"/"+labSize.viewport+")");
+  await engine.eval("window.scrollTo(0,320)");
+  await engine.screenshot("agent-mobile.png");
+
   ok(engine.errors.length===0,"no uncaught browser JavaScript errors");
   console.log("PASS: "+checks+" real browser interaction assertions. Screenshots saved.");
 } catch(e) {
