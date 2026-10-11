@@ -42,9 +42,10 @@ def validate():
     assert not missing, f"Broken internal anchors: {missing}"
     assert not parsed.external_scripts, "The handoff must not load third-party scripts"
     needed = (
-        "architecture", "scenario", "assurance", "policy", "threats",
+        "architecture", "scenario", "assurance", "confirmation", "policy", "threats",
         "handoff", "attack-select", "run-attack", "run-assurance",
         "assurance-facts", "assurance-matrix", "assurance-status",
+        "confirm-select", "run-confirm", "confirm-status", "confirmation-result",
     )
     assert all(name in counts for name in needed), "Missing a critical demo interaction"
     scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", html, re.S | re.I)
